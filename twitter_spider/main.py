@@ -6,11 +6,6 @@ import re
 import subprocess
 import argparse
 
-# keywords = '(六四|八九|64运动|64事件|天安门事件|天安门运动)&(中共|中国|北京|六四|天安门|坦克|屠杀|血|事件|' \
-#           '运动|学生|民运|民主|自由|人权|邓小平|江泽民|习近平|温家宝|胡锦涛|赵紫阳|胡耀邦|鲍彤|李鹏|王丹|' \
-#           '吾尔开希|刘晓波|方政|周锋锁|王军涛|历史|真相|64运动|64事件|天安门事件|天安门运动)'
-
-
 # 根据主题爬取数据
 def crawl_by_theme(keywords_str, time_since, time_until):
     if args.task_type == 'keyword_search':
