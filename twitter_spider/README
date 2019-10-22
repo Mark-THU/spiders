@@ -13,6 +13,10 @@ task_list：关键词表/用户名表
 BF是否应该用数据库来代替现有模块 done
 命令行参数中增加database done
 
+Attention:
+关键词必须具有以下结构
+(a|b|c)&(d|e|f)
+
 update：
 2019-08-14	将用户搜索和关键词两个功能加入到程序中
 2019-08-15	使用argparse输入命令行参数、使用全局bloomfilter取代每次插入数据时查询数据库
