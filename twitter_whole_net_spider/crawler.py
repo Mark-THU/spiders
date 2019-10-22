@@ -24,9 +24,9 @@ class TwitterApiSpider(object):
         self.cursor = self.db.cursor()
 
         self.seed = seed
-        self.api_number = 0
-        self.location = 0
-        self.api_error_times = 0
+        self.api_number = 0 #记录API顺序
+        self.location = 0 #记录checkpoints位置
+        self.api_error_times = 0 #记录API连续error次数
         self.bloom_filter = BloomFilter(name=name, length=length, number=number, save_frequency=save_frequency)
         # checkpoints_id表
         sql = 'create table if not exists checkpoints_id(' \
@@ -156,37 +156,35 @@ class TwitterApiSpider(object):
 
         return tweepy.API(auth, proxy=proxy, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 
-    # 根据id，获取其朋友和粉丝，加入到user_id中
+    # 根据id，获取其朋友和粉丝，加入到user_id中，此函数用户中文用户id爬取
     def search_id_chinese(self, id):
-        # 处理粉丝
+        # 获取粉丝id
         cursor = -1
         while cursor != 0:
             api = self.get_random_api()
             try:
                 result = api.followers_ids(user_id=id, cursor=cursor, count=5000)
-                self.api_error_times = 0
+                self.api_error_times = 0 #成功使用API，将错误次数计数清零
             except:
                 self.api_error_times = self.api_error_times + 1
-                if self.api_error_times % 10 == 0:
+                if self.api_error_times % 10 == 0: #连续10次出错，则休息300s，并打印提示信息
                     self.api_error_times = 0
                     print('something goes wrong with followers_ids api, we will retry it in 300s')
                     time.sleep(300)
             else:
                 followers_ids = result[0]
                 for follower_id in followers_ids:
-                    # sql = 'select * from searched_list where userid = %s limit 1' % follower_id
-                    # self.cursor.execute(sql)
-                    if self.bloom_filter.is_contain(str(follower_id)):
+                    if self.bloom_filter.is_contain(str(follower_id)): #判断是否在BF中，是则跳过，不是则进一步判断是不是中国人
                         pass
                     else:
-                        self.bloom_filter.insert(str(follower_id))
+                        self.bloom_filter.insert(str(follower_id)) #不论是不是中国人都要将其插入BF，这样可以减少后面重复判断
                         if self.is_chinese(follower_id):
                             sql = 'insert into user_id (userid) value (%s)' % follower_id
                             self.check_status()
                             self.cursor.execute(sql)
                         else:
                             pass
-                cursor = result[1][1]
+                cursor = result[1][1] #获得新的cursor
                 self.db.commit()
         # 处理朋友
         cursor = -1
@@ -218,9 +216,10 @@ class TwitterApiSpider(object):
                             pass
                 cursor = result[1][1]
                 self.db.commit()
-
+    
+    # 此函数用户全网用户id爬取，不会判断是否是中国人
     def search_id(self, id):
-        # 处理粉丝
+        # 获取粉丝
         cursor = -1
         while cursor != 0:
             api = self.get_random_api()
@@ -248,7 +247,7 @@ class TwitterApiSpider(object):
 
                 cursor = result[1][1]
                 self.db.commit()
-        # 处理朋友
+        # 获取朋友
         cursor = -1
         while cursor != 0:
             api = self.get_random_api()
@@ -294,7 +293,7 @@ class TwitterApiSpider(object):
         flag = 1
         while flag:
             api = self.get_random_api()
-            sql = 'select userid from user_id limit %s, 100' % self.location
+            sql = 'select userid from user_id limit %s, 100' % self.location # 每次处理100个用户
             self.check_status()
             self.cursor.execute(sql)
             result = self.cursor.fetchall()
@@ -386,6 +385,7 @@ class TwitterApiSpider(object):
                                   updatetime, sensitivity, sensitivity2)
                         sql = sql.replace('\"None\"', 'NULL').replace('None', 'NULL')
                         self.check_status()
+                        # 这里用try和except是为了防止sql语句格式错误导致程序崩溃。毕竟我也很难预料到会出现什么奇怪的字符！
                         try:
                             self.cursor.execute(sql)
                         except:
@@ -437,6 +437,8 @@ class TwitterApiSpider(object):
 
     # 判断是否是中国人
     def is_chinese(self, id):
+        # 使用正则表达式判断文本内容中是否有中文字符，python3 的str本身就是unicode编码，所以不用decode()
+        # 判断是否是中文的原则就是，最近的10条推文中，出现过某条推文中包含中文但是不包含日文，因为日文中某些字与中文一致
         pattern_zh = re.compile(u'[\u4e00-\u9fa5]+')
         pattern_ja_ka = re.compile(u'[\u30a0-\u30ff]+')
         pattern_ja_hi = re.compile(u'[\u3040-\u309f]+')
