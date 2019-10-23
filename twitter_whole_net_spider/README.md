@@ -49,8 +49,8 @@
 >> 使用自己实现的布隆过滤器，保存checkpoints用于程序中途退出后重新启动。
 
 > 2019-10-22	
->> checkpoints改用了limit，而不是between
+>> 1. checkpoints改用了limit，而不是between
 
->> 逻辑修正，在中文全网用户爬虫中，将所有用户insert到过滤器中，而不仅仅是中文用户。
+>> 2. 逻辑修正，在中文全网用户爬虫中，将所有用户insert到过滤器中，而不仅仅是中文用户。
 
->> API连续多次失效则等待一段时间，而不是一次失效就等待一段时间。（api_error_times）
+>> 3. API连续多次失效则等待一段时间，而不是一次失效就等待一段时间。（api_error_times）
