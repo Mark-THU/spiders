@@ -56,7 +56,7 @@ def multiply(list1, list2):
         return list1
     for i in list1:
         for j in list2:
-            result.append(i + '' + j)
+            result.append(i + ' ' + j)
     return result
 
 
